@@ -37,7 +37,7 @@ check(#mqtt_client{username = Username}, Password, _Env) when ?UNDEFINED(Usernam
 
 check(Client, Password, {#http_request{method = Method, url = Url, params = Params}, SuperReq}) ->
     Params1 = feedvar(feedvar(Params, Client), "%P", Password),
-    case request(Method, Url, Params1) of
+    case request(Method, os:getenv("MQTT_AUTH_URL"), Params1) of
         {ok, 200, "ignore"} -> ignore;
         {ok, 200, _Body}  -> {ok, is_superuser(SuperReq, Client)};
         {ok, Code, _Body} -> {error, Code};
@@ -55,9 +55,8 @@ description() -> "Authentication by HTTP API".
 is_superuser(undefined, _MqttClient) ->
     false;
 is_superuser(#http_request{method = Method, url = Url, params = Params}, MqttClient) ->
-    case request(Method, Url, feedvar(Params, MqttClient)) of
+    case request(Method, os:getenv("MQTT_AUTH_SU_URL"), feedvar(Params, MqttClient)) of
         {ok, 200, _Body}   -> true;
         {ok, _Code, _Body} -> false;
         {error, Error}     -> lager:error("HTTP ~s Error: ~p", [Url, Error]), false
     end.
-
